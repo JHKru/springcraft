@@ -26,7 +26,8 @@ def prepare_anms(file_path, cutoff):
     test_anm = springcraft.ANM(ca, ff)
     
     ref_anm = prody.ANM()
-    ref_anm.buildHessian(ca.coord, gamma=1.0, cutoff=13)
+    ref_anm.buildHessian(ca.coord, gamma=1.0, cutoff=cutoff)
+    ref_anm.calcModes(n_modes="all")
 
     return test_anm, ref_anm
 
@@ -275,3 +276,14 @@ def test_frequency_fluctuation_dcc(ff_name):
         # Compare with alternative method of MSF computation
         assert np.allclose(test_fluc_nomw, msqf_alternative)
 
+@pytest.mark.parametrize("file_path",
+        glob.glob(join(data_dir(), "*.mmtf")))
+def test_prs(file_path):
+    test_anm, ref_anm = prepare_anms(file_path, 15.0)
+
+    test_prs, test_eff, test_sens = test_anm.prs_eff_sens()
+    ref_prs, ref_eff, ref_sens = prody.calcPerturbResponse(ref_anm)
+
+    assert np.allclose(test_prs, ref_prs)
+    assert np.allclose(test_eff, ref_eff)
+    assert np.allclose(test_sens, ref_sens)
